@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ATS Score Result</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .analysis h2 { color: #4ade80; font-size: 1.15rem; font-weight: 700; margin: 1.5rem 0 0.5rem; }
+        .analysis h3 { color: #f1f5f9; font-size: 1rem; font-weight: 600; margin: 1.1rem 0 0.4rem; }
+        .analysis p { margin: 0.5rem 0; line-height: 1.7; }
+        .analysis ul { list-style: disc; padding-left: 1.25rem; margin: 0.4rem 0 0.8rem; }
+        .analysis ol { list-style: decimal; padding-left: 1.25rem; margin: 0.4rem 0 0.8rem; }
+        .analysis li { margin-bottom: 0.35rem; line-height: 1.6; }
+        .analysis strong { color: #ffffff; }
+    </style>
+</head>
+<body class="bg-slate-900 text-white p-6">
+    <div class="max-w-4xl mx-auto bg-slate-800 p-8 rounded-2xl shadow-xl border border-slate-700">
+
+        <div class="bg-slate-700 p-4 rounded text-center text-xs text-gray-400 mb-6">
+            [ BANNER AD PLACEHOLDER ]
+        </div>
+
+        <div class="flex items-center justify-between mb-4">
+            <h1 class="text-2xl font-bold text-green-400">Your ATS Analysis &amp; Recommendations</h1>
+            <a href="/" class="text-xs text-slate-300 hover:text-white underline">Check another resume</a>
+        </div>
+
+        <div class="analysis bg-slate-900 p-6 rounded-lg text-gray-300 text-sm border border-slate-700 mb-6">
+            {{ result | safe }}
+        </div>
+
+        <div class="bg-slate-700 p-6 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4">
+            <div>
+                <h3 class="font-bold text-lg text-white">Download ATS Analysis Report</h3>
+                <p class="text-xs text-gray-300">Watch a short 30-sec ad to unlock free PDF download.</p>
+            </div>
+
+            <form action="/download-pdf" method="post">
+                <textarea name="analysis_markdown" hidden>{{ analysis_markdown }}</textarea>
+                <button type="submit" class="bg-green-600 hover:bg-green-500 text-white px-6 py-3 rounded-lg font-bold shadow-md flex items-center gap-2 transition">
+                    📥 Download Analysis Report PDF
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+    function playAdAndSubmit(formElement) {
+        alert("Ad is loading... PDF will download after ad completes.");
+        setTimeout(() => {
+            formElement.submit();
+        }, 3000);
+    }
+    </script>
+</body>
+</html>

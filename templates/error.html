@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Error - AI Career Suite</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex items-center justify-center p-6 font-sans">
+    <div class="max-w-md w-full bg-white border border-red-200 p-8 rounded-2xl shadow-xl text-center">
+        <div class="bg-red-100 text-red-600 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 text-xl font-bold">!</div>
+        <h1 class="text-xl font-bold text-slate-900 mb-2">Oops! Something went wrong</h1>
+        <p class="text-xs text-slate-600 mb-6 bg-red-50 p-3 rounded-lg border border-red-100 font-mono">{{ error_message }}</p>
+        <a href="/" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-5 py-2.5 rounded-xl transition shadow-md">
+            ← Back to Home
+        </a>
+    </div>
+</body>
+</html>

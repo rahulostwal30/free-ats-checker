@@ -1,0 +1,24 @@
+[project]
+name = "free-ats-chaker"
+version = "0.2.0"
+description = "AI ATS resume checker and resume builder (FastAPI + Google Gemini)"
+readme = "README.md"
+authors = [
+    { name = "RahulOstwal", email = "rahulostwal479@gmail.com" }
+]
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+    "jinja2>=3.1",
+    "google-genai>=1.0",
+    "pypdf>=4.0",
+    "python-multipart>=0.0.9",
+    "reportlab>=4.0",
+    "python-dotenv>=1.0",
+    "markdown>=3.5",
+]
+
+[tool.uv]
+# This is a web app, not an installable package.
+package = false
