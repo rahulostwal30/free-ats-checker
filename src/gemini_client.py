@@ -22,7 +22,8 @@ from src.logger import logging
 # Newest GA model first. Override with GEMINI_MODEL in .env if needed.
 DEFAULT_MODELS = [
     "gemini-1.5-flash",
-    "gemini-1.5-pro"
+    "gemini-2.5-flash",
+    "gemini-2.0-flash-exp",
 ]
 
 RETRYABLE_STATUS_CODES = {429, 500, 503}
