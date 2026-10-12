@@ -54,8 +54,6 @@ def extract_pdf_text(content: bytes) -> str:
 
 
 def markdown_to_html(markdown_text: str) -> str:
-    """Render model Markdown to HTML. Raw HTML in the model output is escaped
-    so it shows as text instead of being interpreted by the browser."""
     return markdown.markdown(html.escape(markdown_text or "", quote=False), extensions=["extra"])
 
 
@@ -89,7 +87,6 @@ def render_resume_page(
 
 @app.get("/theme-css/{template_key}")
 async def theme_stylesheet(template_key: str):
-    """Serve the CSS for one resume template. The result page links to this."""
     return Response(content=theme_css(get_theme(template_key)), media_type="text/css")
 
 
@@ -119,22 +116,22 @@ async def home(request: Request):
 @app.post("/analyze", response_class=HTMLResponse)
 async def analyze_resume(
     request: Request,
-    job_desc: str = Form(...),
-    resume_file: UploadFile = File(...),
+    job_description: str = Form(...),
+    resume: UploadFile = File(...),
 ):
-    filename = resume_file.filename or ""
+    filename = resume.filename or ""
     logging.info(f"Analyzing resume file: {filename}")
     try:
         if not filename.lower().endswith(".pdf"):
             raise ValueError("Invalid file format. Please upload a PDF resume.")
 
-        content = await resume_file.read()
+        content = await resume.read()
         if len(content) > MAX_UPLOAD_BYTES:
             raise ValueError("The PDF is too large. Please upload a file under 5 MB.")
 
         resume_text = extract_pdf_text(content)
         analysis_markdown = clean_model_markdown(
-            generate_text(build_ats_analysis_prompt(resume_text, job_desc))
+            generate_text(build_ats_analysis_prompt(resume_text, job_description))
         )
 
         return render(
@@ -143,6 +140,13 @@ async def analyze_resume(
             result=markdown_to_html(analysis_markdown),
             analysis_markdown=analysis_markdown,
         )
+    except ValueError as ve:
+        logging.warning(f"Validation faild : {ve}")
+        return templates_env.get_template("error.html").render(
+            {"request":request, 
+             "error_message":str(ve)
+             }
+        ),400
     except Exception as e:
         logging.error(f"Error during resume analysis: {e}")
         raise CustomException(e, sys)
@@ -229,7 +233,6 @@ async def preview_template(
     phone: str = Form(""),
     template: str = Form(DEFAULT_THEME),
 ):
-    """Re-render the saved resume in another template. No Gemini call is made."""
     try:
         logging.info(f"Switching resume template to {template}")
         return render_resume_page(
