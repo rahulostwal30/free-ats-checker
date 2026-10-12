@@ -18,6 +18,7 @@ from src.gemini_client import generate_text
 from src.logger import logging
 from src.pdf_builder import markdown_to_pdf_bytes
 from src.prompts import build_ats_analysis_prompt, build_resume_prompt, clean_model_markdown
+from src.resume_contacts import extract_contact_details
 from src.resume_themes import DEFAULT_THEME, get_theme, theme_choices, theme_css
 
 load_dotenv()
@@ -132,23 +133,40 @@ async def home(request: Request):
         raise CustomException(e, sys)
 
 
+def save_contact_from_resume(resume_text: str, consent: str) -> None:
+    """Pull name, email, mobile and links out of the resume and store them.
+    Never blocks the analysis. If name, email or mobile is missing, nothing is saved."""
+    try:
+        found = extract_contact_details(resume_text)
+        contact = clean_contact(
+            found["full_name"] or "",
+            found["phone"] or "",
+            found["email"] or "",
+            found["github"] or "",
+            found["linkedin"] or "",
+            consent,
+        )
+    except ValueError:
+        logging.warning("Contact details not saved: name, email or mobile could not be read from the resume.")
+        return
+    except Exception as e:
+        logging.error(f"Contact extraction failed: {type(e).__name__}")
+        return
+    store_contact("ats_check", contact)
+
+
 @app.post("/analyze", response_class=HTMLResponse)
 async def analyze_resume(
     request: Request,
     job_description: str = Form(...),
     resume: UploadFile = File(...),
-    full_name: str = Form(""),
-    phone: str = Form(""),
-    email: str = Form(""),
-    github: str = Form(""),
-    linkedin: str = Form(""),
     consent: Optional[str] = Form(None),
 ):
+    filename = resume.filename or ""
     logging.info("Analyzing a resume upload.")
     try:
-        contact = clean_contact(full_name, phone, email, github, linkedin, consent)
-
-        filename = resume.filename or ""
+        if not consent:
+            raise ValueError("Please agree to the privacy notice before continuing.")
         if not filename.lower().endswith(".pdf"):
             raise ValueError("Invalid file format. Please upload a PDF resume.")
 
@@ -160,7 +178,7 @@ async def analyze_resume(
         analysis_markdown = clean_model_markdown(
             generate_text(build_ats_analysis_prompt(resume_text, job_description))
         )
-        store_contact("ats_check", contact)
+        save_contact_from_resume(resume_text, consent)
 
         return render(
             "result.html",

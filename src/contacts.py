@@ -1,11 +1,12 @@
-"""Stores the contact details entered on the ATS checker and the resume builder.
+"""Stores the contact details of users who used the ATS checker or the resume builder.
 
-- Database is chosen by DATABASE_URL (in .env, or in the hosting platform's
-  environment variables).
-  * Not set: a SQLite file at data/app.db (fine for local testing).
-  * Deployed: use a PostgreSQL URL. Hosting platforms often give "postgres://",
-    which is converted to "postgresql://" automatically.
-- One row per submission in the table user_contacts.
+- Database is chosen by DATABASE_URL (platform environment variable).
+  * Not set: a SQLite file at data/app.db (for local testing only).
+  * Set to a MySQL URL: data goes to that MySQL database.
+    Platforms often give "mysql://user:pass@host:port/dbname". The code changes it
+    to "mysql+pymysql://" automatically, so no other change is needed.
+- One row per submission in the table user_contacts. The table is created
+  automatically the first time data is saved. The database itself must already exist.
 - Personal data is never written to the log file.
 """
 
@@ -31,8 +32,14 @@ class Base(DeclarativeBase):
     pass
 
 
+def _utc_now() -> datetime:
+    # MySQL DATETIME has no timezone, so store UTC time without tzinfo.
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
 class UserContact(Base):
-    __tablename__ = "user_contacts"
+    __tablename__ = "user_ats"
+    __table_args__ = {"mysql_charset": "utf8mb4", "mysql_collate": "utf8mb4_unicode_ci"}
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     source: Mapped[str] = mapped_column(String(30), index=True)  # "ats_check" or "resume_builder"
@@ -41,9 +48,7 @@ class UserContact(Base):
     email: Mapped[str] = mapped_column(String(254), index=True)
     github: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
     linkedin: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utc_now)
 
 
 _session_factory: Optional[sessionmaker] = None
@@ -51,8 +56,8 @@ _session_factory: Optional[sessionmaker] = None
 
 def _database_url() -> str:
     url = os.getenv("DATABASE_URL", "").strip() or DEFAULT_DATABASE_URL
-    if url.startswith("postgres://"):
-        url = "postgresql://" + url[len("postgres://"):]
+    if url.startswith("mysql://"):
+        url = "mysql+pymysql://" + url[len("mysql://"):]
     return url
 
 
@@ -62,7 +67,8 @@ def _get_session_factory() -> sessionmaker:
         url = _database_url()
         if url.startswith(SQLITE_PREFIX):
             os.makedirs(os.path.dirname(url[len(SQLITE_PREFIX):]), exist_ok=True)
-        engine = create_engine(url, pool_pre_ping=True)
+        connect_args = {"charset": "utf8mb4"} if url.startswith("mysql") else {}
+        engine = create_engine(url, pool_pre_ping=True, pool_recycle=280, connect_args=connect_args)
         Base.metadata.create_all(engine)  # creates user_contacts if it does not exist
         _session_factory = sessionmaker(bind=engine)
         logging.info("Contact database is ready.")
