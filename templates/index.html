@@ -44,11 +44,38 @@
 
         <!-- Form Section -->
         <form action="/analyze" method="POST" enctype="multipart/form-data" class="space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="full_name" class="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+                    <input type="text" id="full_name" name="full_name" required maxlength="120" class="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" placeholder="Rahul Sharma">
+                </div>
+                <div>
+                    <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Mobile Number *</label>
+                    <input type="tel" id="phone" name="phone" required maxlength="20" class="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" placeholder="+91 9876543210">
+                </div>
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                    <input type="email" id="email" name="email" required maxlength="254" class="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" placeholder="rahul@example.com">
+                </div>
+                <div>
+                    <label for="github" class="block text-sm font-medium text-gray-700 mb-1">GitHub (optional)</label>
+                    <input type="url" id="github" name="github" maxlength="300" class="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" placeholder="https://github.com/username">
+                </div>
+                <div class="md:col-span-2">
+                    <label for="linkedin" class="block text-sm font-medium text-gray-700 mb-1">LinkedIn (optional)</label>
+                    <input type="url" id="linkedin" name="linkedin" maxlength="300" class="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" placeholder="https://linkedin.com/in/username">
+                </div>
+            </div>
             <div>
                 <label for="job_description" class="block text-sm font-medium text-gray-700 mb-1">Target Job Description</label>
                 <textarea id="job_description" name="job_description" rows="5" required class="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" placeholder="Paste the complete job description here..."></textarea>
             </div>
-
+            <div class="flex items-start gap-3 text-xs text-gray-600">
+                <input type="checkbox" id="consent" name="consent" value="yes" required class="mt-1">
+                <label for="consent">
+                    I agree that my name, mobile number, email, GitHub and LinkedIn links are stored to provide this service and to follow up with me. Your resume text is sent to Google Gemini to create the analysis, and it is not stored by us. To ask for deletion, email rahulostwal479@gmail.com.
+                </label>
+            </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Upload Your Resume</label>
                 <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition-colors">

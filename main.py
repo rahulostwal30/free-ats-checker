@@ -12,6 +12,7 @@ from fastapi.responses import HTMLResponse, Response
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from pypdf import PdfReader
 
+from src.contacts import clean_contact, save_contact
 from src.exception import CustomException
 from src.gemini_client import generate_text
 from src.logger import logging
@@ -35,6 +36,24 @@ templates_env = Environment(
 def render(template_name: str, **context) -> HTMLResponse:
     template = templates_env.get_template(template_name)
     return HTMLResponse(content=template.render(**context))
+
+
+def error_page(request: Request, message: str, status_code: int) -> HTMLResponse:
+    return HTMLResponse(
+        content=templates_env.get_template("error.html").render(
+            request=request, error_message=message
+        ),
+        status_code=status_code,
+    )
+
+
+def store_contact(source: str, contact: dict) -> None:
+    """Save the contact details, but never block the result if saving fails."""
+    try:
+        save_contact(source, contact)
+    except Exception as e:
+        # Log only the error type: some database error messages include the values.
+        logging.error(f"Could not save contact from {source}: {type(e).__name__}")
 
 
 def pdf_response(pdf_bytes: bytes, filename: str) -> Response:
@@ -118,10 +137,18 @@ async def analyze_resume(
     request: Request,
     job_description: str = Form(...),
     resume: UploadFile = File(...),
+    full_name: str = Form(""),
+    phone: str = Form(""),
+    email: str = Form(""),
+    github: str = Form(""),
+    linkedin: str = Form(""),
+    consent: Optional[str] = Form(None),
 ):
-    filename = resume.filename or ""
-    logging.info(f"Analyzing resume file: {filename}")
+    logging.info("Analyzing a resume upload.")
     try:
+        contact = clean_contact(full_name, phone, email, github, linkedin, consent)
+
+        filename = resume.filename or ""
         if not filename.lower().endswith(".pdf"):
             raise ValueError("Invalid file format. Please upload a PDF resume.")
 
@@ -133,6 +160,7 @@ async def analyze_resume(
         analysis_markdown = clean_model_markdown(
             generate_text(build_ats_analysis_prompt(resume_text, job_description))
         )
+        store_contact("ats_check", contact)
 
         return render(
             "result.html",
@@ -141,15 +169,8 @@ async def analyze_resume(
             analysis_markdown=analysis_markdown,
         )
     except ValueError as ve:
-        logging.warning(f"Validation faild : {ve}")
-        return HTMLResponse(
-            content=templates_env.get_template("error.html").render(
-            {"request":request, 
-             "error_message":str(ve)}
-            ),
-            status_code=400,
-        )
-
+        logging.warning(f"Validation failed: {ve}")
+        return error_page(request, str(ve), 400)
     except Exception as e:
         logging.error(f"Error during resume analysis: {e}")
         raise CustomException(e, sys)
@@ -201,9 +222,11 @@ async def generate_resume(
     projects: str = Form(...),
     skills: str = Form(...),
     template: str = Form(DEFAULT_THEME),
+    consent: Optional[str] = Form(None),
 ):
-    logging.info(f"Generating resume for {full_name} with template {template}")
+    logging.info(f"Generating resume with template {template}")
     try:
+        contact = clean_contact(full_name, phone, email, github or "", linkedin or "", consent)
         details = {
             "full_name": full_name,
             "job_title": job_title,
@@ -217,10 +240,14 @@ async def generate_resume(
             "skills": skills,
         }
         resume_markdown = clean_model_markdown(generate_text(build_resume_prompt(details)))
+        store_contact("resume_builder", contact)
 
         return render_resume_page(
             request, resume_markdown, full_name, job_title, email, phone, template,
         )
+    except ValueError as ve:
+        logging.warning(f"Validation failed: {ve}")
+        return error_page(request, str(ve), 400)
     except Exception as e:
         logging.error(f"Failed to generate resume via Gemini API: {e}")
         raise CustomException(e, sys)
