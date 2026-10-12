@@ -142,11 +142,14 @@ async def analyze_resume(
         )
     except ValueError as ve:
         logging.warning(f"Validation faild : {ve}")
-        return templates_env.get_template("error.html").render(
+        return HTMLResponse(
+            content=templates_env.get_template("error.html").render(
             {"request":request, 
-             "error_message":str(ve)
-             }
-        ),400
+             "error_message":str(ve)}
+            ),
+            status_code=400,
+        )
+
     except Exception as e:
         logging.error(f"Error during resume analysis: {e}")
         raise CustomException(e, sys)
