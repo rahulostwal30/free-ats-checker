@@ -24,6 +24,7 @@ DEFAULT_MODELS = [
     "gemini-2.5-flash",
     "gemini-2.0-flash",
     "gemini-1.5-flash",
+    "gemini-1.5-pro"
 ]
 
 RETRYABLE_STATUS_CODES = {429, 500, 503}
