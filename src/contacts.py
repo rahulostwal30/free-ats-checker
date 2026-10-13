@@ -2,9 +2,8 @@
 
 - Database is chosen by DATABASE_URL (platform environment variable).
   * Not set: a SQLite file at data/app.db (for local testing only).
-  * Set to a MySQL URL: data goes to that MySQL database.
-    Platforms often give "mysql://user:pass@host:port/dbname". The code changes it
-    to "mysql+pymysql://" automatically, so no other change is needed.
+  * Set to a PostgreSQL URL (Render gives "postgresql://..."): data goes to that database.
+    The code changes the URL to use the psycopg driver automatically.
 - One row per submission in the table user_contacts. The table is created
   automatically the first time data is saved. The database itself must already exist.
 - Personal data is never written to the log file.
@@ -33,13 +32,12 @@ class Base(DeclarativeBase):
 
 
 def _utc_now() -> datetime:
-    # MySQL DATETIME has no timezone, so store UTC time without tzinfo.
+    # Store UTC time without tzinfo, so it works the same on every database.
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 class UserContact(Base):
-    __tablename__ = "user_ats"
-    __table_args__ = {"mysql_charset": "utf8mb4", "mysql_collate": "utf8mb4_unicode_ci"}
+    __tablename__ = "user_contacts"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     source: Mapped[str] = mapped_column(String(30), index=True)  # "ats_check" or "resume_builder"
@@ -56,8 +54,11 @@ _session_factory: Optional[sessionmaker] = None
 
 def _database_url() -> str:
     url = os.getenv("DATABASE_URL", "").strip() or DEFAULT_DATABASE_URL
-    if url.startswith("mysql://"):
-        url = "mysql+pymysql://" + url[len("mysql://"):]
+    # Render gives "postgres://" or "postgresql://". SQLAlchemy needs the psycopg driver named.
+    if url.startswith("postgres://"):
+        url = "postgresql+psycopg://" + url[len("postgres://"):]
+    elif url.startswith("postgresql://"):
+        url = "postgresql+psycopg://" + url[len("postgresql://"):]
     return url
 
 
@@ -67,8 +68,7 @@ def _get_session_factory() -> sessionmaker:
         url = _database_url()
         if url.startswith(SQLITE_PREFIX):
             os.makedirs(os.path.dirname(url[len(SQLITE_PREFIX):]), exist_ok=True)
-        connect_args = {"charset": "utf8mb4"} if url.startswith("mysql") else {}
-        engine = create_engine(url, pool_pre_ping=True, pool_recycle=280, connect_args=connect_args)
+        engine = create_engine(url, pool_pre_ping=True, pool_recycle=280)
         Base.metadata.create_all(engine)  # creates user_contacts if it does not exist
         _session_factory = sessionmaker(bind=engine)
         logging.info("Contact database is ready.")
